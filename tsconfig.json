@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2021", // Modern JS output
+    "module": "commonjs", // Node.js module system
+    "lib": ["ES2021"], // Built-in JS features
+    "strict": true, // All strict type checks
+    "esModuleInterop": true, // Allow import express from 'express'
+    "skipLibCheck": true, // Speeds up build
+    "forceConsistentCasingInFileNames": true, // Case-sensitive import check
+    "outDir": "./dist", // Output directory
+    "rootDir": "./src", // Your source folder
+    "resolveJsonModule": true // Allow importing JSON files
+  },
+  "include": ["src"], // Compile all .ts files in src
+  "exclude": ["node_modules", "dist"] // Don’t compile node_modules
+}
