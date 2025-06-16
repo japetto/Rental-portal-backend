@@ -1,5 +1,3 @@
-// Define the shape of data required to create a new Tenant
-
 export interface TenantInput {
   name: string;
   email: string;
