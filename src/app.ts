@@ -1,26 +1,36 @@
+import express, { Application, Request, Response } from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-import express from "express";
-import { connectDB } from "./config/db";
-import authRoutes from "./modules/auth/auth.routes"; // ✅ Add this
+import httpStatus from "http-status";
+import globalErrorHandler from "./middlewares/globalErrorHandler";
+import pathNotFoundErrorHandler from "./errors/pathNotFoundErrorHandler";
+import { Routers } from "./app/routes/router";
+import { updateBooking } from "./app/modules/booking/booking.utils";
 
-dotenv.config();
+const app: Application = express();
 
-const app = express();
-
-// Connect to MongoDB
-connectDB();
-
-// Middleware
+// ? Middlewares:
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use("/api/auth", authRoutes); // ✅ Invite and Accept endpoints
-
-// Simple test route
-app.get("/", (_req, res) => {
-  res.send("🚀 API is running and database is connected!");
+// * Basic Page
+app.get("/", async (req: Request, res: Response) => {
+  res.status(httpStatus.OK).send({
+    message: "Travel-Buddy Server Running Successfully",
+    statusCode: httpStatus.OK,
+  });
 });
+
+// * Function for Update Booking and Reservation's
+updateBooking();
+
+//* Main endpoint
+app.use("/api/v1.0", Routers);
+
+//* Global error Handler
+app.use(globalErrorHandler);
+
+//* Path Not Found Error Handler
+app.use(pathNotFoundErrorHandler);
 
 export default app;
