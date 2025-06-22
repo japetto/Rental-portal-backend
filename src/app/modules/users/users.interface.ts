@@ -15,6 +15,8 @@ export interface IUser extends Document {
   profileUrl: string;
   phoneNumber: string;
   preferredLocation: string;
+  // Source tracking field
+  sourceWebsite?: string;
   comparePassword(candidate: string): Promise<boolean>;
 }
 
@@ -27,6 +29,7 @@ export interface IUserWithoutPassword {
   profileImage?: string;
   bio?: string;
   profileUrl: string;
+  sourceWebsite?: string;
   createdAt: Date;
   updatedAt: Date;
 }

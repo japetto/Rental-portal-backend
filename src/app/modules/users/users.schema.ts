@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { model, Schema } from "mongoose";
-import { UserRoleEnums } from "./user.constant";
+import { SourceWebsiteEnums, UserRoleEnums } from "./user.constant";
 import { IUser } from "./users.interface";
 
 export const usersSchema = new Schema<IUser>(
@@ -37,6 +37,12 @@ export const usersSchema = new Schema<IUser>(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+    // Source tracking field
+    sourceWebsite: {
+      type: String,
+      enum: SourceWebsiteEnums,
+      default: "direct",
     },
   },
   {

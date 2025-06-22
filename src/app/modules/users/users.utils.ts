@@ -11,6 +11,8 @@ export function encryptData(user: IUserWithoutPassword) {
     name: user.name,
     email: user.email,
     role: user.role,
+    sourceWebsite: user.sourceWebsite,
+
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
