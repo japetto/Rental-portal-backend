@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
 import { Server } from "http";
+import mongoose from "mongoose";
 import app from "./app";
 import config from "./config/config";
 
@@ -13,7 +13,7 @@ let server: Server;
 
 async function main() {
   try {
-    // const uri = `mongodb://127.0.0.1:27017/travel-buddy`;
+    // const uri = `mongodb://127.0.0.1:27017/Rental-Portal`;
     const uri = config.database_url;
     await mongoose.connect(`${uri}`);
     console.log(`🛢 Database Connected Successfully`);

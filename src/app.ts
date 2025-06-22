@@ -1,10 +1,9 @@
-import express, { Application, Request, Response } from "express";
 import cors from "cors";
+import express, { Application, Request, Response } from "express";
 import httpStatus from "http-status";
-import globalErrorHandler from "./middlewares/globalErrorHandler";
-import pathNotFoundErrorHandler from "./errors/pathNotFoundErrorHandler";
 import { Routers } from "./app/routes/router";
-import { updateBooking } from "./app/modules/booking/booking.utils";
+import pathNotFoundErrorHandler from "./errors/pathNotFoundErrorHandler";
+import globalErrorHandler from "./middlewares/globalErrorHandler";
 
 const app: Application = express();
 
@@ -16,13 +15,10 @@ app.use(express.urlencoded({ extended: true }));
 // * Basic Page
 app.get("/", async (req: Request, res: Response) => {
   res.status(httpStatus.OK).send({
-    message: "Travel-Buddy Server Running Successfully",
+    message: "Rental-Portal Server Running Successfully",
     statusCode: httpStatus.OK,
   });
 });
-
-// * Function for Update Booking and Reservation's
-updateBooking();
 
 //* Main endpoint
 app.use("/api/v1.0", Routers);

@@ -1,44 +1,18 @@
-import CryptoJS from "crypto-js";
 import crypto from "crypto";
-import config from "../../../config/config";
-import { IUserWithoutPassword } from "./users.interface";
-import { jwtHelpers } from "../../../helpers/jwtHelpers";
+import CryptoJS from "crypto-js";
 import { Secret } from "jsonwebtoken";
-
-export function generateUID(userRole: "hotelOwner" | "customer") {
-  const uidLength = 20;
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let uid;
-  if (userRole === "customer") {
-    uid = "c00";
-  } else if (userRole === "hotelOwner") {
-    uid = "ho00";
-  }
-
-  for (let i = 0; i < uidLength; i++) {
-    const randomIndex = Math.floor(Math.random() * characters.length);
-    uid += characters.charAt(randomIndex);
-  }
-
-  return uid;
-}
+import config from "../../../config/config";
+import { jwtHelpers } from "../../../helpers/jwtHelpers";
+import { IUserWithoutPassword } from "./users.interface";
 
 export function encryptData(user: IUserWithoutPassword) {
   const authData = {
     _id: user._id.toString(),
-    userName: user.userName,
+    name: user.name,
     email: user.email,
-    contactNumber: user.contactNumber,
-    profileImage: user.profileImage,
     role: user.role,
-    uid: user.uid,
-    location: user.location,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
-    socialLinks: user.socialLinks,
-    gender: user?.gender,
-    dateOfBirth: user.dateOfBirth,
   };
 
   const encryptedData = CryptoJS.AES.encrypt(
@@ -52,7 +26,7 @@ export function encryptData(user: IUserWithoutPassword) {
 export const generateAuthToken = (user: IUserWithoutPassword) => {
   const accessToken = jwtHelpers.createToken(
     {
-      id: user.uid,
+      id: user._id,
     },
     config.jwt_secret as Secret,
     config.jwt_expires_in as string,

@@ -1,16 +1,7 @@
 import {
-  genderEnums,
-  linkedProvidersEnums,
   userRoleEnums,
 } from "./users.interface";
 
-export const UserRoleEnums: userRoleEnums[] = ["hotelOwner", "customer"];
+export const UserRoleEnums: userRoleEnums[] = ["SUPER_ADMIN", "TENANT"];
 
-export const LinkedProvidersEnums: linkedProvidersEnums[] = [
-  "CUSTOM",
-  "FACEBOOK",
-  "TWITTER",
-  "GOOGLE",
-];
 
-export const GenderEnums: genderEnums[] = ["FEMALE", "MALE"];

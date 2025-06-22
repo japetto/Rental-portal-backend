@@ -1,52 +1,41 @@
+import { Redis } from "@upstash/redis";
+import crypto from "crypto";
 import httpStatus from "http-status";
+import { Secret } from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import config from "../../../config/config";
 import ApiError from "../../../errors/ApiError";
+import { jwtHelpers } from "../../../helpers/jwtHelpers";
 import {
   IAuthUser,
-  ICheckUserExists,
   IForgetPasswordValidator,
   ILoginUser,
   IUpdatePassword,
   IUpdatePasswordValidator,
   IUser,
-  linkedProvidersEnums,
 } from "./users.interface";
 import { Users } from "./users.schema";
 import {
   decryptForgotPasswordResponse,
   encryptForgotPasswordResponse,
   generateAuthToken,
-  generateUID,
 } from "./users.utils";
-import { jwtHelpers } from "../../../helpers/jwtHelpers";
-import config from "../../../config/config";
-import { Secret } from "jsonwebtoken";
-import bcrypt from "bcrypt";
-import crypto from "crypto";
-import nodemailer from "nodemailer";
-import { Redis } from "@upstash/redis";
 
 //* User Register Custom
 const userRegister = async (payload: IUser): Promise<IAuthUser> => {
-  const { email, contactNumber, role } = payload;
+  const { email, password, confirmPassword } = payload;
 
-  const isExistsUser = await Users.findOne({
-    $or: [{ email }, { contactNumber }],
-  });
+  const isExistsUser = await Users.findOne({ email });
   if (isExistsUser) {
-    throw new ApiError(httpStatus.CONFLICT, "Email or Contact Already Exists");
+    throw new ApiError(httpStatus.CONFLICT, "Email Already Exists");
   }
 
-  const uid = generateUID(role);
-  const isUIDExists = await Users.findOne({ uid: uid });
-  if (isUIDExists) {
+  if (password !== confirmPassword) {
     throw new ApiError(
-      httpStatus.CONFLICT,
-      "Something went wrong! Please try again",
+      httpStatus.FORBIDDEN,
+      "Password and Confirm Password must match.",
     );
   }
-  payload.uid = uid as string;
-
-  payload.linkedProviders = ["CUSTOM"];
 
   const user = await Users.create(payload);
 
@@ -57,91 +46,19 @@ const userRegister = async (payload: IUser): Promise<IAuthUser> => {
 const userLogin = async (payload: ILoginUser): Promise<IAuthUser> => {
   const { email, password } = payload;
 
-  const isExists = await Users.findOne({ email: email });
+  const isExists = await Users.findOne({ email }).select("+password");
 
   if (!isExists) {
     throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid Email Or Password");
   }
 
-  const checkPassword = await bcrypt.compare(password, isExists.password);
+  const checkPassword = await isExists.comparePassword(password);
 
   if (!checkPassword) {
     throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid Email Or Password");
   }
 
   return generateAuthToken(isExists as any);
-};
-
-//* Check User for Provider Login
-const checkUserForProviderLogin = async (
-  payload: ICheckUserExists,
-): Promise<IAuthUser | null> => {
-  const { authMethod, email } = payload;
-
-  const isExistsUser = await Users.findOne({ email });
-  if (!isExistsUser) {
-    throw new ApiError(httpStatus.NOT_FOUND, "User Dose Not Exists!");
-  }
-
-  const linkedProviders = isExistsUser.linkedProviders;
-
-  if (isExistsUser && !linkedProviders.includes(authMethod)) {
-    linkedProviders.push(authMethod);
-    const updatedUser = await Users.findOneAndUpdate({ email }, isExistsUser, {
-      new: true,
-    });
-    return generateAuthToken(updatedUser as any);
-  }
-
-  if (isExistsUser && linkedProviders.includes(authMethod)) {
-    return generateAuthToken(isExistsUser as any);
-  }
-
-  return null;
-};
-
-//* Provider Login
-const providerLogin = async (
-  payload: IUser,
-  authMethod: linkedProvidersEnums,
-): Promise<IAuthUser> => {
-  const { email, role } = payload;
-
-  const isExistsUser = await Users.findOne({ email });
-  if (isExistsUser) {
-    const linkedProviders = isExistsUser.linkedProviders;
-    if (!linkedProviders.includes(authMethod)) {
-      linkedProviders.push(authMethod);
-      const updatedUser = await Users.findOneAndUpdate(
-        { email },
-        isExistsUser,
-        {
-          new: true,
-        },
-      );
-      return generateAuthToken(updatedUser as any);
-    }
-
-    if (linkedProviders.includes(authMethod)) {
-      return generateAuthToken(isExistsUser as any);
-    }
-  }
-
-  const uid = generateUID(role);
-  const isUIDExists = await Users.findOne({ uid: uid });
-  if (isUIDExists) {
-    throw new ApiError(
-      httpStatus.CONFLICT,
-      "Something went wrong! Please try again",
-    );
-  }
-  payload.uid = uid as string;
-
-  payload.linkedProviders = ["CUSTOM", authMethod];
-
-  const user = await Users.create(payload);
-
-  return generateAuthToken(user as any);
 };
 
 //* Update User
@@ -157,69 +74,23 @@ const updateUser = async (
     throw new ApiError(httpStatus.NOT_FOUND, "User Not Found");
   }
 
-  const {
-    role,
-    uid,
-    password,
-    location,
-    socialLinks,
-    dateOfBirth,
-    ...updatePayload
-  } = payload;
+  const { password, ...updatePayload } = payload;
 
-  if (role !== undefined || uid !== undefined || password !== undefined) {
+  if (password !== undefined) {
     throw new ApiError(
       httpStatus.UNAUTHORIZED,
-      "Permission Denied! Please Try Again.",
+      "Password cannot be updated through this endpoint. Use update password endpoint.",
     );
   }
 
   if (payload.email) {
     const isExists = await Users.findOne({ email: payload.email });
-    if (isExists) {
+    if (isExists && isExists._id.toString() !== userID) {
       throw new ApiError(
         httpStatus.FORBIDDEN,
         "Email Already Exists! Try Another One.",
       );
     }
-    updatePayload.email = payload.email;
-  }
-
-  if (payload.contactNumber) {
-    const isExists = await Users.findOne({
-      contactNumber: payload.contactNumber,
-    });
-    if (isExists) {
-      throw new ApiError(
-        httpStatus.FORBIDDEN,
-        "Contact Number Already Exists! Try Another One.",
-      );
-    }
-    updatePayload.contactNumber = payload.contactNumber;
-  }
-
-  if (location && Object.keys(location).length > 0) {
-    Object.keys(location).map(key => {
-      const locationsKey = `location.${key}`;
-      (updatePayload as any)[locationsKey] =
-        location[key as keyof typeof location];
-    });
-  }
-
-  if (socialLinks && Object.keys(socialLinks).length > 0) {
-    Object.keys(socialLinks).map(key => {
-      const locationsKey = `socialLinks.${key}`;
-      (updatePayload as any)[locationsKey] =
-        socialLinks[key as keyof typeof socialLinks];
-    });
-  }
-
-  if (dateOfBirth && Object.keys(dateOfBirth).length > 0) {
-    Object.keys(dateOfBirth).map(key => {
-      const locationsKey = `dateOfBirth.${key}`;
-      (updatePayload as any)[locationsKey] =
-        dateOfBirth[key as keyof typeof dateOfBirth];
-    });
   }
 
   const user = await Users.findOneAndUpdate({ _id: userID }, updatePayload, {
@@ -238,15 +109,14 @@ const updatePassword = async (
 
   const { userId, currentPassword, newPassword, confirmPassword } = payload;
 
-  const isExistsUser = await Users.findById({ _id: userId });
+  const isExistsUser = await Users.findById({ _id: userId }).select(
+    "+password",
+  );
   if (!isExistsUser) {
     throw new ApiError(httpStatus.NOT_FOUND, "User Not Found");
   }
 
-  const isPassMatched = await bcrypt.compare(
-    currentPassword,
-    isExistsUser.password as string,
-  );
+  const isPassMatched = await isExistsUser.comparePassword(currentPassword);
 
   if (!isPassMatched) {
     throw new ApiError(
@@ -255,10 +125,7 @@ const updatePassword = async (
     );
   }
 
-  const isPreviousPass = await bcrypt.compare(
-    newPassword,
-    isExistsUser.password as string,
-  );
+  const isPreviousPass = await isExistsUser.comparePassword(newPassword);
 
   if (isPreviousPass || currentPassword === newPassword) {
     throw new ApiError(
@@ -274,14 +141,10 @@ const updatePassword = async (
     );
   }
 
-  const pass = await bcrypt.hash(newPassword, Number(config.salt_round));
-  isExistsUser.password = pass;
+  isExistsUser.password = newPassword;
+  await isExistsUser.save();
 
-  const user = await Users.findOneAndUpdate({ _id: userId }, isExistsUser, {
-    new: true,
-  });
-
-  return generateAuthToken(user as any);
+  return generateAuthToken(isExistsUser as any);
 };
 
 //* Forgot Password Part-1 Find user via email
@@ -374,7 +237,9 @@ const forgotPassword = async (
   payload: IUpdatePasswordValidator,
 ): Promise<string | null> => {
   const { email, password } = payload;
-  const isExistsUser = await Users.findOne({ email: email });
+  const isExistsUser = await Users.findOne({ email: email }).select(
+    "+password",
+  );
   if (!isExistsUser) {
     throw new ApiError(httpStatus.NOT_FOUND, "Invalid User!");
   }
@@ -404,10 +269,7 @@ const forgotPassword = async (
     );
   }
 
-  const isPreviousPass = await bcrypt.compare(
-    password,
-    isExistsUser.password as string,
-  );
+  const isPreviousPass = await isExistsUser.comparePassword(password);
 
   if (isPreviousPass) {
     throw new ApiError(
@@ -415,12 +277,9 @@ const forgotPassword = async (
       "New Password Cannot be The Previous Password",
     );
   }
-  const newPass = await bcrypt.hash(password, Number(config.salt_round));
-  payload.password = newPass;
 
-  await Users.findOneAndUpdate({ email: email }, payload, {
-    new: true,
-  });
+  isExistsUser.password = password;
+  await isExistsUser.save();
 
   await redis.del(email);
 
@@ -430,8 +289,6 @@ const forgotPassword = async (
 export const UserService = {
   userRegister,
   userLogin,
-  checkUserForProviderLogin,
-  providerLogin,
   updateUser,
   updatePassword,
   findUserForForgotPassword,
