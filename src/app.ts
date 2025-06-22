@@ -2,6 +2,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import { connectDB } from "./config/db";
+import authRoutes from "./modules/auth/auth.routes"; // ✅ Add this
 
 dotenv.config();
 
@@ -13,6 +14,9 @@ connectDB();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Routes
+app.use("/api/auth", authRoutes); // ✅ Invite and Accept endpoints
 
 // Simple test route
 app.get("/", (_req, res) => {
