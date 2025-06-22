@@ -17,28 +17,4 @@ router.post(
   UserController.userLogin,
 );
 
-router.patch(
-  "/updateUser/:id",
-  zodValidationRequest(UserValidation.userUpdateZodSchema),
-  UserController.updatedUser,
-);
-
-router.patch(
-  "/updatePassword",
-  zodValidationRequest(UserValidation.updatePasswordZodSchema),
-  UserController.updatePassword,
-);
-
-router.post(
-  "/findUserForForgotPassword",
-  UserController.findUserForForgotPassword,
-);
-
-router.post(
-  "/verifyOtpForForgotPassword",
-  UserController.verifyOtpForForgotPassword,
-);
-
-router.patch("/forgotPassword", UserController.forgotPassword);
-
 export const UserRouter = router;
