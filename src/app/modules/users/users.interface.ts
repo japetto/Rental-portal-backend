@@ -7,7 +7,6 @@ export interface IUser extends Document {
   password: string;
   confirmPassword: string;
   name: string;
-  slug: string;
   role: userRoleEnums;
   isInvited?: boolean;
   isVerified?: boolean;
@@ -23,7 +22,6 @@ export interface IUserWithoutPassword {
   _id: string;
   email: string;
   name: string;
-  slug: string;
   role: userRoleEnums;
   isVerified: boolean;
   profileImage?: string;
