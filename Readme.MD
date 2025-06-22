@@ -1,2 +1,0 @@
-Error:
-JWT verification issue
