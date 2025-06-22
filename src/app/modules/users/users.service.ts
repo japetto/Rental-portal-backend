@@ -1,8 +1,5 @@
-import { Redis } from "@upstash/redis";
-import crypto from "crypto";
 import httpStatus from "http-status";
 import { Secret } from "jsonwebtoken";
-import nodemailer from "nodemailer";
 import config from "../../../config/config";
 import ApiError from "../../../errors/ApiError";
 import { jwtHelpers } from "../../../helpers/jwtHelpers";
@@ -15,11 +12,7 @@ import {
   IUser,
 } from "./users.interface";
 import { Users } from "./users.schema";
-import {
-  decryptForgotPasswordResponse,
-  encryptForgotPasswordResponse,
-  generateAuthToken,
-} from "./users.utils";
+import { generateAuthToken } from "./users.utils";
 
 //* User Register Custom
 const userRegister = async (payload: IUser): Promise<IAuthUser> => {
@@ -162,32 +155,6 @@ const findUserForForgotPassword = async (
     throw new ApiError(httpStatus.NOT_FOUND, "Invalid User!");
   }
 
-  const redis = new Redis({
-    url: config.redis_host,
-    token: config.redis_password,
-  });
-
-  const otp = crypto.randomInt(100000, 999999).toString();
-  const dataToEncrypt = JSON.stringify({ otp: otp, verified: false });
-  const encryptData = encryptForgotPasswordResponse(dataToEncrypt);
-  await redis.set(email, encryptData, { ex: 180 });
-
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user: config.nodemailer_user,
-      pass: config.nodemailer_pass,
-    },
-  });
-
-  await transporter.sendMail({
-    to: email,
-    subject: "OTP For Reset Password",
-    text: `Your OTP is ${otp}`,
-  });
-
   return user;
 };
 
@@ -204,31 +171,6 @@ const verifyOtpForForgotPassword = async (email: string, otp: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, "Invalid User!");
   }
 
-  const redis = new Redis({
-    url: config.redis_host,
-    token: config.redis_password,
-  });
-
-  const encryptData = await redis.get(email);
-  if (!encryptData) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "OTP expired or not found.");
-  }
-
-  const decryptedData = decryptForgotPasswordResponse(encryptData as string);
-  const { otp: storedOtp, verified } = JSON.parse(decryptedData);
-
-  if (Number(storedOtp) !== Number(otp)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "Invalid OTP!");
-  }
-
-  if (verified === true) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "OTP Already Verified!");
-  }
-
-  const updatedData = JSON.stringify({ otp: storedOtp, verified: true });
-  const encryptUpdatedData = encryptForgotPasswordResponse(updatedData);
-  await redis.set(email, encryptUpdatedData, { ex: 180 });
-
   return { message: "OTP verified successfully." };
 };
 
@@ -244,31 +186,6 @@ const forgotPassword = async (
     throw new ApiError(httpStatus.NOT_FOUND, "Invalid User!");
   }
 
-  const redis = new Redis({
-    url: config.redis_host,
-    token: config.redis_password,
-  });
-
-  const encryptedRedisResponse = await redis.get(email);
-  if (!encryptedRedisResponse) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "Failed to Update! Please try again.",
-    );
-  }
-
-  const decryptedData = decryptForgotPasswordResponse(
-    encryptedRedisResponse as string,
-  );
-  const { verified } = JSON.parse(decryptedData);
-
-  if (verified !== true) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "Failed to Update! Please try again.",
-    );
-  }
-
   const isPreviousPass = await isExistsUser.comparePassword(password);
 
   if (isPreviousPass) {
@@ -280,8 +197,6 @@ const forgotPassword = async (
 
   isExistsUser.password = password;
   await isExistsUser.save();
-
-  await redis.del(email);
 
   return null;
 };
