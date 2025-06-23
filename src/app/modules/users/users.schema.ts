@@ -38,6 +38,22 @@ export const usersSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    isInvited: {
+      type: Boolean,
+      default: false,
+    },
+    profileUrl: {
+      type: String,
+      default: "",
+    },
+    phoneNumber: {
+      type: String,
+      default: "",
+    },
+    preferredLocation: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,

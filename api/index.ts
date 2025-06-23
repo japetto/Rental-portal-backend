@@ -7,6 +7,7 @@ let isConnected = false;
 
 const connectToDatabase = async () => {
   if (!config.database_url) {
+    console.error("Database URL is undefined. Available config:", config);
     throw new Error("Database URL is not defined in config.");
   }
 
@@ -16,11 +17,13 @@ const connectToDatabase = async () => {
   }
 
   try {
+    console.log("Attempting to connect to MongoDB...");
     await mongoose.connect(config.database_url);
     isConnected = true;
     console.log("Database connected successfully");
   } catch (error) {
-    console.error("Failed to connect to database:", error);
+    console.error("Failed to connect to database. Error details:", error);
+    console.error("Connection string used:", config.database_url);
     throw error;
   }
 };
