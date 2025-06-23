@@ -2,12 +2,12 @@
   "name": "rental-portal-backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/server.ts",
   "scripts": {
     "build": "tsc",
     "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts",
-    "start": "node dist/server.js",
-    "vercel-build": "npm run build",
+    "start": "ts-node src/server.ts",
+    "vercel-build": "npm install",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -7,6 +7,10 @@ import globalErrorHandler from "./middlewares/globalErrorHandler";
 
 const app: Application = express();
 
+app.get("/", (req: Request, res: Response) => {
+  res.send("Welcome to Rental Portal Backend API");
+});
+
 // CORS configuration
 const corsOptions = {
   origin: [
