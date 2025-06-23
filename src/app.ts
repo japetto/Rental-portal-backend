@@ -1,14 +1,38 @@
-import express, { Application, Request, Response } from "express";
 import cors from "cors";
+import express, { Application, Request, Response } from "express";
 import httpStatus from "http-status";
-import globalErrorHandler from "./middlewares/globalErrorHandler";
-import pathNotFoundErrorHandler from "./errors/pathNotFoundErrorHandler";
 import { Routers } from "./app/routes/router";
+import pathNotFoundErrorHandler from "./errors/pathNotFoundErrorHandler";
+import globalErrorHandler from "./middlewares/globalErrorHandler";
 
 const app: Application = express();
 
+// CORS configuration
+const corsOptions = {
+  origin: [
+    "https://beckrow.netlify.app",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8080",
+  ],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: [
+    "X-CSRF-Token",
+    "X-Requested-With",
+    "Accept",
+    "Accept-Version",
+    "Content-Length",
+    "Content-MD5",
+    "Content-Type",
+    "Date",
+    "X-Api-Version",
+    "Authorization",
+  ],
+};
+
 // ? Middlewares:
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
